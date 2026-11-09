@@ -136,3 +136,55 @@ removed, commit the change, and add a PR comment explaining why.
 **Summary:** Committed and pushed to branch `johor-findings-presentation`. Removed "Prepared by OrangePay" from
 Deck A's title and closing slides so it is unbranded for the contact's board, re-exported the PDF and updated
 `deck-outline.md`. The PR text and the comment explaining the change are ready.
+
+---
+
+## 2026-11-06 15:05 — New project: Securing AI Agents and MCP in Banking (project/02 - Securing AI Agents and MCP in Banking/)
+
+**Prompt:** This is a summary of my interaction with Gemini, create a new project to document these points. There
+could be more than 1 document. (Pasted: a Gemini executive summary on securing AI agents and MCP in banking,
+covering core problems and risks, three threat scenarios, and four architectural mitigations. Stored across the
+project's supporting docs.)
+
+**Summary:** Created `project/02 - Securing AI Agents and MCP in Banking/`. The tracker `README.md` has Status: Idea,
+with only the Idea section filled in. Owner and client are TBC, and the source is recorded as an internal idea from
+the Gemini conversation. Split the summary into three supporting docs:
+- `problem-and-risks.md`
+- `threat-scenarios.md`
+- `architectural-mitigations.md`, which adds our own scenario coverage matrix, gaps (least-privilege MCP scopes,
+  egress control, tenant-isolated memory) and open questions for validation.
+
+Added row 02 to the `README.md` Projects table. Nothing committed.
+
+---
+
+## 2026-11-06 15:13 — Project 02: solution blueprint and development strategy (project/02 - Securing AI Agents and MCP in Banking/)
+
+**Prompt:** This was my prompt to generate the blueprint / solutions. Incorporate it as an approach and solution.
+Then see what the development strategy would be if we want to develop such a thing, including the points where we
+could find a partner / bank, deploy the solution for a POC, and then move on to bigger goals. (Pasted: the Gemini
+prompt for a "Secure Agentic AI & MCP Integration Blueprint (v1.0)", in five sections. Saved word for word as
+`blueprint-prompt.md`.)
+
+**Summary:** Added three docs to project 02:
+- `blueprint-prompt.md`: the prompt, saved word for word.
+- `solution-blueprint.md`: the full blueprint, written to the prompt's structure. Covers trust zones Z0–Z4, threat
+  catalogue T1–T6, Patterns A–D with mermaid workflows, OAuth 2.1 + DPoP / RFC 8707 / FAPI 2.0, least-privilege
+  tool design, the policy-as-code gateway, the audit-record schema, tiered anomaly response, a regulatory mapping
+  marked as still to be confirmed, and residual risks.
+- `development-strategy.md`: offers A/B/C, with the recommendation to lead with advisory and build the Agent
+  Security Gateway. Covers build vs partner, phases 0–5 with gates, partner channels and touchpoints, POC scope
+  and success criteria, team, risks and next steps.
+
+Updated the tracker's supporting-docs list (Status stays Idea), answered the open question in
+`architectural-mitigations.md`, and expanded the project 02 row in `README.md`. Nothing committed.
+
+---
+
+## 2026-11-09 11:06 — Commit and push project 02 to main
+
+**Prompt:** Push the changes directly to main.
+
+**Summary:** Committed the project 02 folder (tracker, problem/risks, threat scenarios, mitigations, solution
+blueprint, development strategy, blueprint prompt), the `README.md` index row and the `prompt-history.md` entries
+in one commit on `main`, then pushed it to `origin/main`.
