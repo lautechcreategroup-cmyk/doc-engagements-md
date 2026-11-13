@@ -188,3 +188,47 @@ Updated the tracker's supporting-docs list (Status stays Idea), answered the ope
 **Summary:** Committed the project 02 folder (tracker, problem/risks, threat scenarios, mitigations, solution
 blueprint, development strategy, blueprint prompt), the `README.md` index row and the `prompt-history.md` entries
 in one commit on `main`, then pushed it to `origin/main`.
+
+---
+
+## 2026-11-13 16:23 — Project 02: board deck (project/02 - Securing AI Agents and MCP in Banking/presentation/board-deck.html)
+
+**Prompt:** For project 02, Securing AI Agents and MCP in Banking, produce a set of slides to be presented to a
+company board about the landscape of the AI solution, the MCP marketplace, then the problem statement and finally
+the possible solutions. We can have: an MCP product to onboard a company; MCP with web scraping; agent-to-agent
+that will stop third-party agents' direct access. Follow-up: the slides can be in HTML, but in slide form so that
+we can print them to PDF.
+
+**Summary:** Added `presentation/` to project 02 with `board-deck.html` (17 slides, 1920×1080, arrow-key
+navigation, prints one slide per page), the exported `board-deck.pdf`, and `export-pdf.sh` (copied from project
+01). Sections: AI landscape (assistants, copilots, agents; MCP and A2A), the MCP marketplace (four kinds of
+player; how publishing and listing work), the problem (four reasons controls fall short, scenarios S1–S3, three
+public MCP incidents from 2025, four guarantees a bank needs), and solutions (options A, B and C, a comparison
+table, a proposed path, and the decisions asked of the board). Assumptions taken: "onboard a company" read as
+getting a company onto MCP; the budget is a `[RM__]` placeholder; the incident and protocol dates are from memory
+and need checking before external use. Updated the tracker's supporting-docs list and the project 02 row in
+`README.md`. Nothing committed.
+
+---
+
+## 2026-11-13 16:44 — Project 02: Option C scenario slides (project/02 - Securing AI Agents and MCP in Banking/presentation/board-deck.html)
+
+**Prompt:** For Option C, in the deck give some scenarios where agent-to-agent can protect the customer, mitigate
+an out-of-control agent and guard against prompt injection. Maybe add a few slides after slide 14.
+
+**Summary:** Added three scenario slides after slide 14 (now slides 15–17; the deck is 20 slides). Each one sets
+"with direct access" against "with agent-to-agent": a grocery-spend question where the history stays in the bank;
+a faulty or compromised assistant that is limited to a short list of requests, cannot pay without the customer's
+signature and can be suspended; and a hidden instruction in an invoice that cannot cross the fixed-form request
+boundary. The third slide states the limit: the outside assistant can still be fooled. Re-exported
+`board-deck.pdf` and updated the slide count in the tracker and `README.md`. Nothing committed.
+
+---
+
+## 2026-11-13 16:51 — Commit and push project 02 board deck to main
+
+**Prompt:** Please commit these changes and push directly to main.
+
+**Summary:** Committed the project 02 `presentation/` folder (board deck HTML, PDF and `export-pdf.sh`), the
+tracker update, the `README.md` index row and the `prompt-history.md` entries in one commit on `main`, then pushed
+it to `origin/main`.

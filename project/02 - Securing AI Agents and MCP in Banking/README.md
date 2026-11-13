@@ -44,6 +44,12 @@ Supporting docs in this folder:
   integration accelerators), build vs partner, and the phased plan with gates: validate, reference demo, find a
   design-partner bank, POC, production pilot, scale. Includes where to find partners and the POC success criteria.
 - [blueprint-prompt.md](blueprint-prompt.md): the prompt the blueprint structure came from, saved word for word.
+- [presentation/board-deck.html](presentation/board-deck.html) ([PDF](presentation/board-deck.pdf)): a 20-slide
+  board briefing. Covers the AI landscape, the MCP marketplace, the problem statement, and three product options:
+  A, an MCP product to onboard a company; B, MCP with web scraping; C, an agent-to-agent gateway that stops
+  third-party agents reaching tools and data directly. Slides 15–17 are three Option C scenarios: protecting
+  the customer, containing an out-of-control agent, and guarding against prompt injection. Ends with a comparison, a proposed path and the decisions
+  asked of the board. Re-export the PDF with [presentation/export-pdf.sh](presentation/export-pdf.sh).
 
 ## Validation
 [What we tried to de-risk it before committing real time — a prototype, a client conversation, a spike.
