@@ -58,12 +58,25 @@ In Claude Code, the `/new-project` and `/progress-report` skills (`.claude/skill
 
 ## Prompt history
 
-Append prompts into the [`prompt-history.md`](prompt-history.md) file. Each prompt should have a clear title and a
-description of the task. If the prompt is related to a specific file, include the file path in the title. If the
-prompt is related to a specific project or document, include the project folder or document name in the title.
-Include the time the prompt was added. Add entries at the bottom, in the format already used there (**Prompt:** /
-**Summary:**). Long pasted material in a prompt can be shortened to a one-line description of what was pasted and
-where it was stored.
+Log every prompt given to an agent in [`prompt-history/`](prompt-history/), **one file per entry**, in a folder per month (`prompt-history/YYYY-MM/`). Use the script. It creates the month's folder when needed and writes the entry to a new file named `YYYY-MM-DDTHHMM-<title-slug>-<4 random characters>.md`, so branches that each log prompts never conflict. It never reads or changes any other file.
+
+```sh
+prompt-history/add.sh "<title>" <<'EOF'
+**Prompt:** <the prompt as given>
+
+**Summary:** <what was done>
+EOF
+```
+
+The entry is the heading `## YYYY-MM-DD HH:MM +ZZZZ — <title>` (local time and UTC offset), a blank line, then the body.
+
+- **One new file per entry.** Never add to an existing entry or history file, and never read history files to add an entry: the script needs nothing from them. Don't use an editor tool on them.
+- **Title:** clear and specific. Include the file path when the prompt is about one file, and the project folder or document name when it is about a project or document.
+- **Prompt:** the prompt as given. Shorten long pasted material to one line saying what was pasted and where it was stored.
+- Keep the `'EOF'` quotes so backticks and `$` in the body aren't run by the shell. Avoid backticks in the title, or single-quote it.
+- **No shell available?** Create the entry's file yourself, as the script would: `prompt-history/YYYY-MM/YYYY-MM-DDTHHMM-<slug>-<4 random lowercase letters or digits>.md`, where `<slug>` is the title in lower case with each run of other characters replaced by one `-` (no leading or trailing `-`, at most 60 characters). Its content is the heading `## YYYY-MM-DD HH:MM +ZZZZ — <title>`, a blank line, then the body. Don't read or change any other file.
+- **Older entries** (from before one file per entry) are in [`prompt-history.md`](prompt-history.md) at the repo root. It's kept as it is: don't add to it.
+- **Looking up past prompts:** `grep -rn "<term>" prompt-history/ prompt-history.md` searches every entry, old and new. `ls prompt-history/YYYY-MM/` lists a month's entries in time order, and `cat prompt-history/YYYY-MM/*.md` reads the month.
 
 ## Ground rules
 
