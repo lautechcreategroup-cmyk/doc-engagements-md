@@ -38,12 +38,25 @@ Supporting docs in this folder:
   which mitigation covers which scenario, and open questions for validation.
 - [solution-blueprint.md](solution-blueprint.md): the proposed approach and solution. *Secure Agentic AI & MCP
   Integration Blueprint (v1.0 draft)*, written for a CISO, an enterprise-architecture head and compliance. Covers
-  the trust zones, a threat catalogue (T1–T6), Patterns A–D with workflows, OAuth 2.1 / DPoP binding,
-  least-privilege tools, the policy gateway, the audit trail and anomaly response, and a regulatory mapping.
+  the trust zones, a threat catalogue (T1–T9), Patterns A–D with workflows, OAuth 2.1 / DPoP binding,
+  least-privilege tools, the policy gateway, a commitment boundary (4.5), the audit trail and anomaly response,
+  and a regulatory mapping.
 - [development-strategy.md](development-strategy.md): what we would sell (advisory, an Agent Security Gateway,
   integration accelerators), build vs partner, and the phased plan with gates: validate, reference demo, find a
   design-partner bank, POC, production pilot, scale. Includes where to find partners and the POC success criteria.
 - [blueprint-prompt.md](blueprint-prompt.md): the prompt the blueprint structure came from, saved word for word.
+- [clearhouse-assessment.md](clearhouse-assessment.md): assessment of the two ClearHouse papers in
+  [`reference/`](reference/) (the ClearHouse governed-execution white paper v0.2, and *Governing Agentic Finance*
+  v3.5 on SAFR-aligned payment controls). Maps their mechanisms to our blueprint and recommends building a
+  commitment layer into the gateway: reserve shared limits, revalidate at execution, durable obligation and
+  reconciliation, signed evidence bundle. Adds threats T7–T9 and a later "agentic corporate banking" segment.
+- [bank-rollout-proposal.md](bank-rollout-proposal.md): the bank-facing proposal. Value proposition by
+  executive, and a six-phase rollout where each phase is approved on its own and pays back before the next:
+  0 readiness assessment, 1 payment integrity controls on existing automation, 2 governed staff assistant,
+  3 customer insights (read-only), 4 customer actions with device approval, 5 third-party agent channel,
+  6 agentic corporate banking (hypothesis). Includes commercial model, governance and honest limits.
+- [`reference/`](reference/): source PDFs from outside OrangePay (self-published, AI-assisted, not independently
+  reviewed).
 - [presentation/board-deck.html](presentation/board-deck.html) ([PDF](presentation/board-deck.pdf)): a 20-slide
   board briefing. Covers the AI landscape, the MCP marketplace, the problem statement, and three product options:
   A, an MCP product to onboard a company; B, MCP with web scraping; C, an agent-to-agent gateway that stops
@@ -52,8 +65,12 @@ Supporting docs in this folder:
   asked of the board. Re-export the PDF with [presentation/export-pdf.sh](presentation/export-pdf.sh).
 
 ## Validation
-[What we tried to de-risk it before committing real time — a prototype, a client conversation, a spike.
-What we learned. Rough cost/time spent so far.]
+- 2026-11-17: reviewed two external ClearHouse papers ([assessment](clearhouse-assessment.md)). They confirm a gap
+  our blueprint missed: an approved action must be re-checked at the moment it executes, shared limits must be
+  reserved, and uncertain payment outcomes must be tracked (T7–T9). Their own tests show a conventional
+  Postgres-plus-outbox stack does this as well within one bank, so we build it into the gateway rather than adopt
+  their runtime. Blueprint (P7, 4.5) and strategy (Phase 0–1, POC criteria) updated. Discovery conversations not
+  yet started.
 
 ## Decision
 [Build / Park / Drop — one line on why, and who made the call]

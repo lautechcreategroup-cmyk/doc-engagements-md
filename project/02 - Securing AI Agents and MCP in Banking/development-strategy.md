@@ -27,6 +27,7 @@ each bank's core banking system and mobile app, so it only becomes reusable afte
 | Models | Whatever the bank approves. The design is model-agnostic. |
 | Authorisation server | The bank's existing IAM / OAuth server, extended with consent screens. We supply the profile and configuration. |
 | Gateway, tool kit, intent schemas, audit schema, HITL orchestration, red-team pack | **Build.** This is the IP. |
+| Commitment layer (reserve → revalidate → durable obligation → reconcile; signed evidence bundle) | **Build** on Postgres (serializable transactions + outbox). Take the design from the ClearHouse papers, not their code — see [clearhouse-assessment.md](clearhouse-assessment.md). Revisit partnering for corporate / treasury use cases after Gate 0. |
 
 ## 2. Phases and gates
 
@@ -66,6 +67,10 @@ filled by an existing vendor.
   - Who would sign off?
   - Would you run a POC on synthetic data?
 - Get a security practitioner outside OrangePay to review the blueprint for credibility.
+- Read MAS SAFR v1.1 from the MAS source and check whether BNM has anything equivalent. Check the ClearHouse
+  repositories' licence and review status, and hold one conversation with the ClearHouse / Tokenized Markets Lab
+  team ([clearhouse-assessment.md](clearhouse-assessment.md) 3.4).
+- In discovery, ask whether SME or corporate customers want their own agents to make payments (a later segment).
 
 **Partner touchpoint:** use warm introductions from existing OrangePay relationships, including the MDEC / Johor
 contacts from [project 01](../01%20-%20Johor%20Digital%20Government%20Next%20Steps%20(China%20Benchmark)/README.md)
@@ -85,9 +90,14 @@ Goal: a working, self-hosted demonstration. It becomes the main sales asset and 
 - Pattern D with a simple mock "bank app" (mobile web or a thin native shell) that does device-key signing.
 - Pattern C as a minimal sandboxed enterprise agent for one intent (`spending_summary`).
 - Pattern B as one blind-token journey (`statement_view`).
+- The commitment layer in the TAS (blueprint 4.5): reservation against shared limits, commit-time revalidation,
+  durable obligation with idempotency key, and a signed evidence bundle with an offline verifier. About 2 extra
+  engineer-weeks.
 - One Pattern A vendor integrated through the pluggable interface.
 - **Red-team demo script:** replay S1–S3 against a naive agent setup (the attacks succeed), then against the
-  blueprint stack (they are blocked). Show the audit trail for each one.
+  blueprint stack (they are blocked). Show the audit trail for each one. Add three commitment scenes with honest
+  agents: consent revoked after approval (T7), two agents racing one daily cap (T8), and a crash after core
+  accepts a payment (T9). Finish by verifying the evidence bundle offline.
 
 **Partner touchpoint:** approach Pattern A vendors and a cloud provider's financial-services team about
 technology partnerships (credits, co-marketing, joint pitches).
@@ -139,8 +149,9 @@ APIs. Synthetic or masked data only.
 
 | Criterion | Target |
 | --- | --- |
-| Red-team test pack (S1–S3, T1–T6), run by the partner's security team | 0 successful data exfiltrations; 0 unauthorised state changes |
+| Red-team test pack (S1–S3, T1–T9), run by the partner's security team | 0 successful data exfiltrations; 0 unauthorised state changes |
 | Writes executed without a valid customer signature | 0 (100% go through Pattern D) |
+| Commitment tests (T7–T9) under concurrency and injected crashes | 0 stale executions; 0 limit breaches; 0 duplicate payments; every uncertain outcome visible in the operations queue |
 | Tool calls with an audit record and policy decision | 100% |
 | Gateway latency overhead | p95 target agreed with the partner |
 | Task completion in user testing | Agreed baseline (measures the friction from Patterns B and D) |
@@ -176,6 +187,10 @@ multi-year licence.
   bank. Then a second market (MY ↔ SG, then wider ASEAN).
 - **Third-party agent access:** extend from the bank's own assistant to allowlisted external agents. This matches
   open-finance and open-banking directions.
+- **Agentic corporate banking (hypothesis):** SME and corporate customers' own agents paying through the bank
+  under mandates with spending envelopes (SAFR Auto-Execute within limits, Escalate above), with shared budgets
+  across agents and auditor-verifiable evidence. Builds on the commitment layer; a possible partnership with
+  ClearHouse ([clearhouse-assessment.md](clearhouse-assessment.md) 3.3).
 - **Certifications:** ISO 27001 and SOC 2 Type II for our own operations, plus security assessments that banks'
   vendor-risk processes require.
 - **Standards and visibility:** contribute to MCP authorisation and security discussions, and publish the S1–S3
@@ -213,6 +228,7 @@ multi-year licence.
 | Regulator position on customer-facing agents is unclear or restrictive | Run the POC through a sandbox; design so the bank can show compliance (5.3). |
 | Liability if a protected flow fails | Contract terms, insurance, and the deterministic design: writes always need a customer signature. |
 | Unproven assumption: banks want this *now* | Gate 0 exists to test it cheaply before any build spend. |
+| Commitment controls look like "just database engineering" to a bank | They are, within one bank, and we say so. Sell the integrated lifecycle, the evidence bundle and the red-team pack, not novelty. |
 
 ## 6. Immediate next steps
 

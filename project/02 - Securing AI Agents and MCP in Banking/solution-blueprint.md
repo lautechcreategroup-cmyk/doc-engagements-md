@@ -6,7 +6,7 @@
 | **Target audience** | CISO, Head of Enterprise Architecture, Regulatory Compliance Officers |
 | **Prepared for** | A Tier-1 financial institution (generic; no specific client yet) |
 | **Date** | 2026-11-06 |
-| **Related docs** | [problem-and-risks.md](problem-and-risks.md) · [threat-scenarios.md](threat-scenarios.md) · [architectural-mitigations.md](architectural-mitigations.md) · [development-strategy.md](development-strategy.md) · structure from [blueprint-prompt.md](blueprint-prompt.md) |
+| **Related docs** | [problem-and-risks.md](problem-and-risks.md) · [threat-scenarios.md](threat-scenarios.md) · [architectural-mitigations.md](architectural-mitigations.md) · [development-strategy.md](development-strategy.md) · [clearhouse-assessment.md](clearhouse-assessment.md) · structure from [blueprint-prompt.md](blueprint-prompt.md) |
 
 **Scope.** In scope: AI agents reaching core banking data and services through Model Context Protocol (MCP)
 servers, for retail and SME customer channels. The agent can be the bank's own assistant or a third-party agent
@@ -53,6 +53,7 @@ Enable agentic efficiency while keeping:
 | P4 | Least privilege per tool, per session, per account | Narrow tools, consented account scopes, short-lived bound tokens (Section 4). |
 | P5 | Defence in depth | Probabilistic controls (scanning) sit in front of deterministic ones (policy, crypto), never instead of them. |
 | P6 | Everything is auditable | Every intent, tool call and decision is in an append-only trail (Section 5). |
+| P7 | Approval is not execution | An approved action is checked again at the moment it commits: still authorised, still within shared limits, recorded durably before it is sent (4.5). |
 
 ---
 
@@ -93,6 +94,12 @@ bindings, the ability to move money, beneficiary lists, and audit logs (which ar
 | T4 | Token theft, replay and confused deputy | A stolen bearer token is replayed; the MCP server forwards the client's token downstream | Account takeover through the agent channel | Sender-constrained tokens, audience binding, no token passthrough (4.1) |
 | T5 | Tool poisoning and malicious MCP servers | Instructions in a third-party tool description; a tool definition changed after approval | The agent is steered before the user says anything | Signed, pinned tool manifests; gateway allowlist of servers and tools (4.2) |
 | T6 | Volume abuse / denial of wallet | Brute-force enumeration; runaway agent loops | Cost and availability | Rate and budget limits at the gateway (4.3). The only threat that rate limiting covers. |
+| T7 | Stale authorisation (time-of-check / time-of-use) | The customer approves a payment; before it executes, consent is revoked, the payee is flagged or a hold is placed, and it runs on the earlier check | Payment the bank would not have allowed | Policy version in the signed hash; commit-time revalidation (4.5) |
+| T8 | Shared-limit race | Two sessions or agents (bank assistant + third-party agent, or several SME staff agents) each pass the daily-cap check and together exceed it | Limits breached with every check "passing" | Reserve-then-commit against shared limits (4.5) |
+| T9 | Duplicate or lost execution | A timeout after core banking accepted the instruction; a retry pays twice, or a lost payment is assumed sent | Double payment or silent loss | Durable obligation before submission, idempotency key, `outcome_unknown` state (4.5) |
+
+T7–T9 come from the ClearHouse papers ([clearhouse-assessment.md](clearhouse-assessment.md)). None of them needs
+a compromised agent; they occur with honest, correctly authorised agents acting concurrently.
 
 ---
 
@@ -314,8 +321,8 @@ contact-detail change) runs on the AI's authority.
 5. **Cryptographic approval.** The customer approves with a device-bound key (passkey/FIDO2 or the bank's
    secure-device binding, unlocked by biometrics). The signature is over a hash of the canonical payload, which
    *dynamically links* the approval to the exact amount and payee.
-6. **Verify, then execute.** TAS checks the signature against the device's registered key and the payload hash,
-   then executes. The agent only receives a status (`approved` / `rejected` / `expired`).
+6. **Verify, revalidate, then execute.** TAS checks the signature against the device's registered key and the
+   payload hash, re-checks that the approval is still valid now (4.5), then executes. The agent only receives a status (`approved` / `rejected` / `expired`).
 
 ```mermaid
 sequenceDiagram
@@ -418,6 +425,50 @@ Behaviour: **fail closed.** Every decision is logged with the rule ID and policy
 - Separate model hosting per trust zone, with contracts that forbid training on or retaining prompts.
 - Memory is ephemeral by default. Any persistent memory is per customer, encrypted, has a retention limit, and is
   never pooled into a shared vector store.
+- Agents hold an identity token only. Execution credentials (core-banking and payment APIs, signing keys) are
+  reachable only through the gateway and TAS, held in an HSM / KMS. Bypass drills (can any agent reach a payment
+  system another way?) are part of the red-team pack (5.4) and are run by the bank against its own deployment.
+- **Pattern C release rule:** an enterprise agent that has read raw records is treated as high-sensitivity for the
+  rest of its session. Its output reaches Z1 only through an explicit declassifier (an approved aggregate
+  template). A clean DLP scan alone is never enough to release it, because DLP cannot catch paraphrased data.
+
+### 4.5 Commitment boundary: from approval to execution
+
+Pattern D proves the customer approved *this* payment. It does not prove the payment is still allowed when it
+runs, that parallel sessions have not used up the same limit, or that a timeout did not leave it half done
+(T7–T9). The TAS therefore runs every write through a fixed lifecycle, each step a serializable transaction in its
+own database:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Drafted: draft_* tool
+    Drafted --> Reserved: policy pre-check + reserve shared limit
+    Reserved --> Approved: customer signs hash(payload ‖ policy_version ‖ consent_version)
+    Reserved --> Released: rejected / expired
+    Approved --> Committed: revalidate in the commit transaction
+    Approved --> Refused: consent, payee, hold, limit or session changed
+    Committed --> Submitted: durable obligation written, idempotency key = draft_id
+    Submitted --> Executed: core confirms
+    Submitted --> OutcomeUnknown: timeout / crash / lost ack
+    OutcomeUnknown --> Executed: external evidence
+    OutcomeUnknown --> NotExecuted: proof of non-execution
+    OutcomeUnknown --> ManualInvestigation: ambiguous
+    Refused --> Released
+    NotExecuted --> Released
+```
+
+| Control | Requirement |
+| --- | --- |
+| Intent binding | The signed hash covers the canonical payload *and* the policy and consent versions it was approved under. A change to any of them voids the approval. |
+| Reservation | Drafts reserve against every shared limit they touch (per account, per customer, per corporate mandate). Reservations expire if unused. Consumption is a single conditional update that only one caller can win. |
+| Commit-time revalidation | Inside the same transaction that consumes the reservation: re-check consent, beneficiary status, account holds and freezes, limits and session state **by content, not only by version number**. Refuse and log on any change. |
+| Durable obligation | Write the obligation in the same transaction as the commit, before submission to core. Reuse one identifier (the idempotency key) for every attempt. |
+| Uncertain outcomes | No blind retries. Resubmit only if the core rail enforces the idempotency key or there is proof the payment did not run. Otherwise keep the amount reserved and send it to an operations queue. |
+| Dispositions | Every policy decision is labelled with one of MAS SAFR's four outcomes: Deny, Escalate (to the customer or staff), Auto-Execute (only within a corporate mandate envelope; never for retail in v1), Observe. |
+
+Within one bank this is ordinary database engineering (serializable transactions plus a transactional outbox).
+The ClearHouse papers show that this conventional stack is as correct as their dedicated kernel inside one
+database, so we build it into the gateway rather than adopting a separate runtime.
 
 ---
 
@@ -437,6 +488,11 @@ Behaviour: **fail closed.** Every decision is logged with the rule ID and policy
 | `scan_results` | Pattern A scores and actions |
 | `hitl_challenge_id`, `signature_valid`, `device_key_id` | For writes |
 | `model_id`, `model_version` | For the enterprise agent |
+
+**Evidence bundle.** Each event is also signed (e.g. Ed25519, key in the HSM). A decision sequence can be exported
+as a bundle that a standalone verifier checks offline against a pinned public key. Be precise about what it
+proves: integrity and order. It does not prove completeness (a signer can leave events out), that the decision
+was right, or that the payment settled. The verifier report states these limits.
 
 **Storage:** WORM / object-lock storage, hash-chained, with retention per the bank's record-retention policy and
 regulatory requirements. **Logs must not become the next leak** (Scenario 3): PII is redacted or tokenised at
@@ -468,13 +524,14 @@ HITL rejections.
 | Access control and least privilege | ✓ | ✓ | 4.1–4.3 |
 | Audit trail and incident response | ✓ (breach notification) | ✓ | 5.1, 5.2 |
 | Fairness, ethics, accountability of AI | — | MAS FEAT principles, if adopted | Policy-as-code explainability, model versioning |
+| Runtime governance of agent-initiated financial actions | — | MAS SAFR v1.1 (voluntary reference architecture; to be read from the MAS source) | Four dispositions (4.5), agent identity (4.1), versioned policy (4.3), evidence bundle (5.1) |
 
 The specific clause references are not mapped yet. That needs a compliance review against each bank's current
 obligations, including any new AI-specific guidance from BNM or MAS.
 
 ### 5.4 Assurance
 
-- **Red-team test pack** built from [threat-scenarios.md](threat-scenarios.md) (S1–S3) and T1–T6, run before go-live
+- **Red-team test pack** built from [threat-scenarios.md](threat-scenarios.md) (S1–S3) and T1–T9, run before go-live
   and on every policy or model change.
 - Independent penetration testing of the gateway, the authorisation server, the app redemption and HITL flows.
 - Change control on tool manifests, intent schemas, policies and model versions.
@@ -498,4 +555,8 @@ obligations, including any new AI-specific guidance from BNM or MAS.
    assumes Z1 is untrusted, so this is a commercial risk rather than a security gap.
 4. **Specification churn:** OAuth 2.1 (draft) and MCP versions. Pin and review.
 5. **Scanner efficacy is unproven** against document-borne injection. Benchmark vendors during the POC.
+6. **Predicate conditions at commit.** Rules such as "no open hold on any account in this group" have no single
+   version to check. Evaluate them by query inside the commit transaction, and test this explicitly.
+7. **Core idempotency varies.** How much of the `outcome_unknown` handling (4.5) is automatic depends on whether
+   each bank's core and payment rails honour an idempotency key. Confirm per bank.
 6. **Approval fatigue and social engineering** in Pattern D. Monitor rejection and fraud rates.
