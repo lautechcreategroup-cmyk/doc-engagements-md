@@ -58,7 +58,9 @@ In Claude Code, the `/new-project` and `/progress-report` skills (`.claude/skill
 
 ## Prompt history
 
-Log every prompt given to an agent in [`prompt-history/`](prompt-history/), **one file per entry**, in a folder per month (`prompt-history/YYYY-MM/`). Use the script. It creates the month's folder when needed and writes the entry to a new file named `YYYY-MM-DDTHHMM-<title-slug>-<4 random characters>.md`, so branches that each log prompts never conflict. It never reads or changes any other file.
+Log a prompt **only if it changed the repo**: the agent created, edited, moved or deleted a file, or committed or pushed. A prompt that changed nothing gets no entry. That covers questions, retrieval, reviews and explanations with no edits, and drafts that were discarded. The history entry itself doesn't count as a change. If a later prompt in the same session makes changes, log that prompt then.
+
+Write each entry to [`prompt-history/`](prompt-history/), **one file per entry**, in a folder per month (`prompt-history/YYYY-MM/`). Use the script. It creates the month's folder when needed and writes the entry to a new file named `YYYY-MM-DDTHHMM-<title-slug>-<4 random characters>.md`, so branches that each log prompts never conflict. It never reads or changes any other file.
 
 ```sh
 prompt-history/add.sh "<title>" <<'EOF'

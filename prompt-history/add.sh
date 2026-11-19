@@ -1,5 +1,7 @@
 #!/bin/sh
 # Add one prompt-history entry as its own file, so branches that each log prompts never conflict.
+# Log only prompts that changed the repo (files created, edited, moved or deleted, or a commit/push);
+# enquiries that changed nothing get no entry. See the Prompt history section of CLAUDE.md.
 #
 # Usage:
 #   prompt-history/add.sh "<title>" <<'EOF'
