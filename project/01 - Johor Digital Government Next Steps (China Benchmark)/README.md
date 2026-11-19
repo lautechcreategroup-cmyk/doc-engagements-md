@@ -49,6 +49,29 @@ Supporting docs in this folder:
   - `deck-b-how-we-help.html` / `.pdf`: how we help shape, define and deliver the work, with Hyalo as our delivery
     approach. Not to be left with the client.
   - `export-pdf.sh`: regenerates the PDFs.
+- [business-case-2026-10-17.md](business-case-2026-10-17.md) (+ rendered
+  [business-case-2026-10-17.pdf](business-case-2026-10-17.pdf)): CEO-facing business case distilling the whole
+  package into the most conservative posture both expert reviews support. Render with
+  `npx md-to-pdf business-case-2026-10-17.md --launch-options '{"executablePath": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser", "headless": true}'`;
+  styling in `business-case.css`.
+- [reviews/](reviews/): adversarial realism reviews of this package by two agents — one briefed as a Malaysian
+  government IT delivery expert, one as a Chinese government IT delivery expert:
+  - [reviews/agent-1-malaysian-government-it-expert/review.md](reviews/agent-1-malaysian-government-it-expert/review.md)
+  - [reviews/agent-2-chinese-government-it-expert/review.md](reviews/agent-2-chinese-government-it-expert/review.md)
+
+### Expert review takeaways (2026-10-17)
+
+Both reviewers' verdict: the research is honest by benchmark standards, but it misses the four things that kill
+Malaysian state IT programmes — **funding model, procurement route, accountable owner, electoral clock** (PRN
+Johor by 2027) — and presents China as a success reel with failures footnoted. Corrections both flagged: Suzhou
+信易贷 and Beijing Data Group numbers are wrong; "100% online" is item-coverage, not completion; Shanghai Data
+Exchange is a second slow-start case, not the counter-example to Guiyang; Digital Guangdong's Tencent stake was
+diluted to ~16.7% by a central SOE in 2021; "Chief Minister" should be Menteri Besar; PDPA exempts state
+governments entirely (not just DSA). Shortlist impact per both reviews: bid **A1, A3, A4, B5, B1** (rescoped to
+MMKN directive instead of state enactment); park **C6, C5**; kill or gate **C4** (KL City Brain precedent);
+**C3** unviable as scoped; **C1** renewals-only and later than stated. Johor's substitute for Chinese mandates is
+its grant/appointment leverage over the 16 PBTs — make it explicit. Add a "who pays / product owner" column to
+every longlist row and declare OrangePay's payments interest (B5/C3) up front.
 
 ## Validation
 [What we tried to de-risk it before committing real time — a prototype, a client conversation, a spike.
