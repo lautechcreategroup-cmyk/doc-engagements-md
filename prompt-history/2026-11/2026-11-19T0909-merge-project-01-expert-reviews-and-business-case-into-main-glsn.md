@@ -1,0 +1,5 @@
+## 2026-11-19 09:09 +0800 — Merge Project 01 expert reviews and business case into main
+
+**Prompt:** Add all those [the uncommitted Project 01 business case and the project-01-expert-reviews branch] and commit directly to main. Then checkout the new branch with the POC info.
+
+**Summary:** Committed the Project 01 CEO business case (md, pdf, css, tracker and index updates) on project-01-expert-reviews, fast-forwarded local main to origin/main, and merged the branch into main. Conflicts were resolved in favour of main's one-file-per-entry prompt history: CLAUDE.md and add.sh kept from main, prompt-history.md kept at the root, and the 7 branch-only October entries converted to files under prompt-history/2026-10/. README Project 01 row and the Project 01 tracker combine both sides (research notes and decks from main; expert reviews and business case from the branch). Then switched this checkout to project-02-poc and removed the separate worktree. Not pushed: the GitHub account on this machine has read-only access.
