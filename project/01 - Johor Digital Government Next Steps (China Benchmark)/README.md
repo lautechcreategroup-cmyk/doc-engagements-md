@@ -39,6 +39,11 @@ Supporting docs in this folder:
   success and failure case studies for each bucket and a 42-row numbers register for follow-up research.
 - [opportunity-longlist.md](opportunity-longlist.md): candidate Johor projects in the three buckets, each mapped to
   its Chinese precedent and the Johor adaptation needed.
+- [business-case-2026-10-17.md](business-case-2026-10-17.md) (+ rendered
+  [business-case-2026-10-17.pdf](business-case-2026-10-17.pdf)): CEO-facing business case distilling the whole
+  package into the most conservative posture both expert reviews support. Render with
+  `npx md-to-pdf business-case-2026-10-17.md --launch-options '{"executablePath": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser", "headless": true}'`;
+  styling in `business-case.css`.
 - [reviews/](reviews/): adversarial realism reviews of this package by two agents — one briefed as a Malaysian
   government IT delivery expert, one as a Chinese government IT delivery expert:
   - [reviews/agent-1-malaysian-government-it-expert/review.md](reviews/agent-1-malaysian-government-it-expert/review.md)
