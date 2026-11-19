@@ -22,6 +22,7 @@ simple stand-ins. See the [POC README](README.md).
 | Z4 | **Mock customer profile** | `stack/services/customer-profile/` | Retail customers, corporate entities, users and roles, account relationships (sole / joint / business / corporate), KYC status, devices. |
 | Z4 | **Mock statements** | `stack/services/statements/` | Transaction history with categories, monthly statements, blind-token vault for statement views. |
 | Z4 | **Mock payments** | `stack/services/payments/` | Payees / beneficiaries, billers, intrabank transfer, interbank (mock DuitNow / IBG), bill payment (mock JomPAY), bulk payment files, standing instructions. Idempotent submission; can be told to fail or time out for the T9 scene. |
+| Z4 | **Open banking MCP (Mode 1 only)** | `stack/open-mcp/` | Deliberately unsafe baseline: broad tools straight over the mock services, including a `transfer` that executes. Runs only in the `open` compose profile, never by default. |
 | — | **Demo console** | `stack/demo-console/` | One web page with three panes: personal-agent chat, bank app, live audit / trace feed. Scene picker for [demo-script.md](demo-script.md). |
 | — | **Seed data** | `stack/seed-data/` | Synthetic personas, accounts, 6 months of transactions, poisoned documents for the attack scenes. |
 
@@ -45,6 +46,47 @@ flowchart LR
 | Auth | Customer's consent-scoped JWT | Bank agent's service identity + the customer context the gateway bound to the request |
 
 The full lists are in [mcp-tool-catalogue.md](mcp-tool-catalogue.md).
+
+## 2a. Three channel modes: with and without the bank agent
+
+The POC runs the **same personal agent, seed data and scenes** in three modes, switched by one setting
+(`CHANNEL_MODE=open|direct|agent`, also a toggle in the demo console). The point is to show what the bank agent
+adds, and what the gateway alone already gives you.
+
+```mermaid
+flowchart LR
+    subgraph M1["Mode 1 · Open MCP (unsafe baseline)"]
+        PA1["Personal agent"] --> OPEN["Open banking MCP<br/>broad tools · real execute"] --> S1[("Mock bank")]
+    end
+    subgraph M2["Mode 2 · Governed direct MCP"]
+        PA2["Personal agent"] --> GW2["Gateway<br/>consent · policy · scan · audit"] --> MCP2["Banking MCP<br/>read + draft tools"] --> S2[("Mock bank")]
+    end
+    subgraph M3["Mode 3 · Bank agent (target)"]
+        PA3["Personal agent"] --> GW3["Gateway"] --> BA3["Bank agent"] --> MCP3["Banking MCP"] --> S3[("Mock bank")]
+    end
+```
+
+| | Mode 1 · Open MCP | Mode 2 · Governed direct MCP | Mode 3 · Bank agent |
+| --- | --- | --- | --- |
+| What it represents | A bank wrapping its APIs in MCP with no extra design | Board deck **Option A**: narrow tools, consent, policy, signed approvals, audit | Board deck **Option C**: agent-to-agent, the bank's agent does the work |
+| Personal agent calls | Broad tools: `get_accounts(customer_id)`, `query_transactions(customer_id)`, `transfer(...)` that executes | The Banking MCP read and draft tools, proxied by the gateway with consent-scoped refs | Agent Channel intents |
+| Who reasons over raw data | The customer's agent | The customer's agent | The bank agent, inside the bank |
+| What leaves the bank | Everything the key can reach | Raw records for the consented accounts | Aggregates, deep links and statuses |
+| Untrusted bank data (memos, payee names) reaches | The customer's agent | The customer's agent (marked `untrusted`) | Only the sandboxed bank agent |
+| Writes | Execute immediately | Drafts → device approval → commitment layer | Same as Mode 2 |
+| Who pays model tokens for the analysis | Customer | Customer | Bank |
+
+What the comparison should show, honestly:
+- **Mode 1 → Mode 2:** the gateway, consent scoping, drafts and signed approvals stop scope bleed, unauthorised
+  payments, duplicate payments and limit races. **Writes are as safe in Mode 2 as in Mode 3.**
+- **Mode 2 → Mode 3:** the bank agent is what keeps **raw data and injected content inside the bank**, gives
+  consistent analysis whichever agent the customer uses, and lets the bank decide what an answer may contain. The
+  cost is an extra hop, bank-paid model calls, and agents having to use intents instead of fine-grained tools.
+- Mode 2 is a legitimate product, not a strawman. Some banks will choose it.
+
+The demo console records, per run: records and sensitive fields that left the bank, model and tool calls on each
+side, tokens and cost on each side, latency, task outcome, attack outcome and audit events. The comparison panel
+shows these side by side ([demo-script.md](demo-script.md) Act 4).
 
 ## 3. Main flows
 
@@ -116,6 +158,11 @@ amount). The personal agent of a corporate user acts *as that user*: a maker's a
 checker approves in the bank app. Payments covered by a **standing mandate** (a named payee list, per-payment
 cap, monthly envelope) can be Auto-Executed, still reserved against the shared envelope and still audited. See
 [use-cases.md](use-cases.md) C4–C7.
+
+Some corporate users are also retail customers of the bank (Mei Ling, Rajesh, Priya in the seed). They have one
+login but two **profiles**, personal and company. Consent, tokens and every bank-agent request are bound to one
+profile, so the agent can serve both but never mixes them in one answer or one payment ([use-cases.md](use-cases.md)
+C9, X11, X12).
 
 ## 4. Tech stack (recommended, see README decisions D1–D10)
 

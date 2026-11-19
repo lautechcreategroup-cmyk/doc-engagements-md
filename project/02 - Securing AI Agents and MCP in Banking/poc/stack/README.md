@@ -21,7 +21,8 @@ stack/
 │   ├── scanner/              Pattern A scanner interface + heuristic scanner
 │   ├── tas/                  transaction authorisation service + commitment lifecycle
 │   └── audit/                append-only signed audit store, evidence export, offline verifier
-├── personal-agent/           Z1 · the customer's own agent
+├── open-mcp/                 Mode 1 only · deliberately unsafe open banking MCP (comparison baseline)
+├── personal-agent/           Z1 · the customer's own agent (same code in all three channel modes)
 ├── bank-app/                 Z0 · mock bank app (approvals, statement views, maker/checker)
 ├── demo-console/             three-pane demo UI + scene picker
 ├── seed-data/                synthetic personas, transactions, customer files (incl. poisoned docs)

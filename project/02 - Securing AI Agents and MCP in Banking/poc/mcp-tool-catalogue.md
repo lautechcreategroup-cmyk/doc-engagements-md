@@ -12,6 +12,12 @@ IDs, containing **only the accounts and payees the customer consented to**. Neit
 or a full account number. A reference from another session or another customer resolves to nothing and is logged
 as a policy denial.
 
+The map is also bound to **one profile**. A person who is both a retail customer and a corporate user (e.g. Mei
+Ling) gives their personal agent two separate consents, `personal` and `org:<company>`, and gets two tokens. Each
+Agent Channel call carries one token, so one profile; references from the other profile resolve to nothing.
+`list_my_accounts` and `get_customer_context` return the active profile so both agents know whose money they are
+talking about.
+
 ## 2. Agent Channel MCP (gateway, for personal agents)
 
 Every tool takes the customer's bearer token (set by the MCP client) and returns either an answer object, a
@@ -52,7 +58,7 @@ before forwarding, and checks the answer against the intent's **output template*
 
 | Tool | Parameters | Returns | Backed by |
 | --- | --- | --- | --- |
-| `get_customer_context` | — | Segment, display name, consented account refs, entitlements, corporate role (if any) | Customer profile |
+| `get_customer_context` | — | Active profile (`personal` or `org`), segment, display name, consented account refs, entitlements, corporate role (if any) | Customer profile |
 | `get_account` | `account_ref` | Product, status, currency, masked number | Core banking |
 | `get_account_balance` | `account_ref` | Available, ledger, holds total, as-of | Core banking |
 | `list_holds` | `account_ref` | Holds (amount, reason class, expiry) | Core banking |
@@ -84,6 +90,29 @@ All of these create a **TAS draft**. None posts anything. Each returns `{draft_i
 
 There is **no** `execute_*`, `approve_*` or `query_database` tool anywhere. Approval only happens in the bank app;
 execution only happens in TAS.
+
+## 3a. Direct Channel MCP (Mode 2 only)
+
+In Mode 2 ([architecture.md](architecture.md) §2a) the gateway re-exposes the **Banking MCP read and draft tools
+(§3) directly to the personal agent**, instead of the intents in §2. Everything else stays: consent-scoped refs,
+one profile per token, schema validation, Pattern A scan on free-text and document fields, policy decisions,
+drafts that need device approval, the commitment layer and audit. What changes is that tool results (transaction
+rows, payee names, memos marked `untrusted`) go to the customer's agent.
+
+## 3b. Open banking MCP (Mode 1 only, deliberately unsafe)
+
+The anti-patterns from blueprint 4.2, on purpose, so the attacks have something to succeed against. Clearly
+labelled in the console; only started by the `open` compose profile.
+
+| Tool | Why it is unsafe |
+| --- | --- |
+| `get_accounts(customer_id)` | Returns every account the customer is linked to (joint, business, company), with full account numbers |
+| `query_transactions(customer_id, from, to)` | All accounts, all fields, memos as plain text |
+| `search_customer(name)` | Lets an agent look up other customers |
+| `transfer(from_account_no, to_account_no, amount, reference)` | Executes immediately, no approval, no idempotency |
+| `add_payee(...)` | No cooling-off |
+
+Authentication is a single static API key per customer, with no consent screen.
 
 ## 4. Manifests
 

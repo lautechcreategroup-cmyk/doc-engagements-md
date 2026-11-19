@@ -59,14 +59,17 @@ choice; be consistent).
 
 Treat these as acceptance tests. Write an automated test for each.
 
-1. **No path from the personal agent to banking tools.** The personal agent's only bank connection is the Agent
-   Channel MCP. The Banking MCP servers accept calls only from the bank agent's service identity on the internal
-   network.
+1. **No unmediated path from the personal agent to banking tools.** In Mode 3 (the default) the personal agent's
+   only bank connection is the Agent Channel MCP, and the Banking MCP servers accept calls only from the bank
+   agent's service identity on the internal network. In Mode 2 the gateway proxies the Banking MCP tools with every
+   control below except properties 2 and 9. Mode 1 is the only exception to everything here (see Channel modes).
 2. **No raw data leaves the bank.** Agent Channel responses never contain transaction rows, full account numbers
    or internal IDs. Each `ask_bank` intent has an output schema (template); the gateway rejects any bank-agent
    answer that does not fit it, then runs a DLP check.
 3. **Consent scoping.** Account and payee references are opaque, per session, and only cover what the customer
-   consented to. Unknown or foreign references resolve to nothing and are logged as denials.
+   consented to. Unknown or foreign references resolve to nothing and are logged as denials. A person who is both a
+   retail customer and a corporate user has one login but two profiles (personal and company); every consent,
+   token and bank-agent request is bound to exactly one profile, and references never resolve across profiles.
 4. **No agent can execute a write.** There are no `execute_*`, `approve_*` or free-query tools anywhere. Draft
    tools create TAS drafts only. Only TAS can submit to the payments service; payments returns 403 to anyone else.
 5. **Approval is bound to the payload.** The bank app renders the approval from the TAS canonical payload (never
@@ -78,7 +81,8 @@ Treat these as acceptance tests. Write an automated test for each.
    in the same transaction; submit with `draft_id` as the idempotency key; never blindly retry an unknown outcome.
 7. **Corporate controls.** The approval matrix and roles come from the customer-profile service and are enforced
    by TAS. A maker cannot approve their own payment. Mandate Auto-Execute only applies inside the mandate's payee
-   list, per-payment cap and shared envelope, and is still reserved and audited.
+   list, per-payment cap and shared envelope, and is still reserved and audited. A company payment to an account
+   owned by the maker (or any approver) personally is never Auto-Executed and cannot be approved by that person.
 8. **Untrusted content is data.** Transaction memos and counterparty names are wrapped as `{"untrusted": ...}` in
    Banking MCP results; uploaded documents and CSVs pass the Pattern A scanner before any field reaches the bank
    agent; payees are always resolved from the registered payee list, never from document text.
@@ -104,7 +108,22 @@ user's consent-scoped token) and a small local toolset over `stack/seed-data/cus
 read files, extract invoice text, read CSVs). It speaks naturally to the user, turns requests into intents, tells
 the user when to approve in the bank app, and polls request status. It has no knowledge of bank internals.
 
-**Gateway** (`stack/bank-edge/gateway/`): the Agent Channel MCP server. Pipeline per call: verify token → map refs →
+## Channel modes (the comparison)
+
+The POC must run the same personal agent, seed and scenes in three modes, selected by `CHANNEL_MODE` and a toggle
+in the demo console. Read `poc/architecture.md` §2a and `poc/use-cases.md` §3a for the expected outcomes.
+
+- **Mode 3 · `agent` (default):** personal agent → Agent Channel intents → gateway → bank agent → Banking MCP.
+- **Mode 2 · `direct`:** personal agent → gateway → Banking MCP read and draft tools (the Direct Channel,
+  `poc/mcp-tool-catalogue.md` §3a). All controls except output templates and bank-agent isolation.
+- **Mode 1 · `open`:** personal agent → the deliberately unsafe Open banking MCP (`stack/open-mcp/`, catalogue
+  §3b). Only in the `open` compose profile; never the default; labelled unsafe in the console and in logs.
+
+The personal agent's code must not change between modes; only its MCP server configuration does. Instrument every
+run so the console can compare modes: records and sensitive fields that left the bank, model and tool calls,
+tokens and cost per side, latency, task and attack outcome.
+
+**Gateway** (`stack/bank-edge/gateway/`): the Agent Channel MCP server (and, in Mode 2, the Direct Channel). Pipeline per call: verify token → map refs →
 validate intent schema → Pattern A scan on free-text and document fields → policy decision → call bank agent →
 check output template → DLP → audit → respond.
 
@@ -116,7 +135,9 @@ Build in order. Each milestone ends with tests passing, `make demo-<milestone>` 
 - **M0 — Skeleton.** Compose file, Postgres, health endpoints for every service, Makefile targets (`up`, `down`,
   `reset`, `seed`, `test`), CI-style `make test`.
 - **M1 — Mock banking system.** The four services per `mock-banking-system.md`, seed data for Aisyah, Farid,
-  Daniel and Tanjung Logistics (fixed random seed), customer files including the poisoned invoice and payroll
+  Daniel and Tanjung Logistics, the Tanjung staff who are also retail customers (Mei Ling, Rajesh, Priya and the
+  light-retail employees paid by intrabank payroll), the extra corporates (Petro Hub, Seri Mutiara Retail Group,
+  Klinik Sejahtera) and the full biller list with bill accounts and history, with a fixed random seed; customer files including the poisoned invoice and payroll
   variants, fault injection endpoints. Tests for balances, idempotent posting, cooling-off, bulk validation.
 - **M2 — Banking MCP + bank agent.** Read and draft MCP servers with pinned, signed manifests. The bank agent,
   runnable from a CLI harness that feeds it intents directly (`make ask PERSONA=aisyah INTENT=spending_summary`).
@@ -124,14 +145,17 @@ Build in order. Each milestone ends with tests passing, `make demo-<milestone>` 
 - **M3 — Edge: auth, consent, gateway, Agent Channel.** Mock auth server with consent screen; opaque ref mapping;
   the Agent Channel MCP; policy engine v1; Pattern A heuristic scanner; output templates and DLP; audit store.
 - **M4 — Personal agent + demo console.** The personal agent (CLI and web chat); demo console with chat, bank app
-  pane and live audit feed; Pattern B statement view (R3).
+  pane and live audit feed; Pattern B statement view (R3). Add Mode 2 (Direct Channel) and the mode toggle here,
+  since the gateway already has everything it needs, so R2 can be compared in Modes 2 and 3 early.
 - **M5 — Writes: TAS, approvals, commitment layer.** Draft lifecycle, reservations, device-key approval in the bank
   app, commit-time revalidation, durable obligation, reconciliation for unknown outcomes. R4, R5, X5, X7, X9.
 - **M6 — Corporate.** Roles, approval matrix, maker/checker in the bank app, bulk payroll, mandates with
-  Auto-Execute / Escalate and shared envelopes. C2, C3, C4, C5, C7, X4, X6.
-- **M7 — Security scenes and the naive comparison.** X1–X3, X8, X10 as scripted scenes; a `naive` compose profile
-  that wires the personal agent straight to a broad, unsafe banking MCP so the attacks visibly succeed; evidence
-  bundle export and offline verify; the full `demo-script.md` run end to end.
+  Auto-Execute / Escalate and shared envelopes. C2, C3, C4, C5, C7, C9, C10, C11, X4, X6, X11, X12 (C12, C13
+  if time allows).
+- **M7 — Security scenes and the three-mode comparison.** X1–X3, X8, X10 as scripted scenes; Mode 1 (Open banking
+  MCP, `open` compose profile) so the attacks visibly succeed; the comparison panel and the `use-cases.md` §3a
+  outcome matrix as tests across all three modes; evidence bundle export and offline verify; the full
+  `demo-script.md` run end to end, including Act 4.
 
 ## Testing
 

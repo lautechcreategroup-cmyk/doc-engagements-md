@@ -1,0 +1,5 @@
+## 2026-11-19 09:44 +0800 — Project 02 POC: compare personal agent on MCP directly vs via the bank agent (poc/architecture.md section 2a)
+
+**Prompt:** Could the POC have the personal agent talking to the MCP direct, and then we can contrast it with the case where we have the banking agent?
+
+**Summary:** Added three channel modes to the POC spec, switched by CHANNEL_MODE and a console toggle, with the same personal agent code: Mode 1 open MCP (deliberately unsafe baseline, new stack/open-mcp/), Mode 2 governed direct MCP (gateway proxies the Banking MCP read and draft tools with consent, policy, scanning, drafts and approvals; board deck Option A), Mode 3 bank agent (target; Option C). architecture.md section 2a explains what each step adds and costs; mcp-tool-catalogue.md 3a/3b define the Direct Channel and the unsafe open tools; use-cases.md 3a has the per-scene outcome matrix across modes; demo-script.md replaces the optional comparison with Act 4; build prompt gets a Channel modes section, property 1 reworded, Mode 2 at M4 and Mode 1 plus comparison at M7; POC README adds decision D11 and revises open question 4; root README index updated. Not committed.

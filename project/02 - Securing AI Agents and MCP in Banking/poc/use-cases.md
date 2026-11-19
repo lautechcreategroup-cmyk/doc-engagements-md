@@ -18,6 +18,7 @@ Priority: **Must** = in the first demo; **Should** = build if time allows; **Cou
 | R5 | Transfer to a new payee | "Send RM 300 to my landlord, here are his details." | Drafts add-payee + transfer | Cooling-off, extra friction for new payee, two approvals | Should |
 | R6 | Cash-flow warning | "Will I be short before payday?" | Projects balance from standing instructions and bills due | Pattern C; forward-looking analysis | Should |
 | R7 | Subscription review | "What subscriptions am I paying for?" | Detects recurring merchants and price increases | Pattern C; output template limits merchant detail | Could |
+| R9 | What's due | "What bills are due this week, and can I pay them all?" | Lists bill accounts due, totals them against the available balance, drafts each payment | Several drafts, one approval each (or one batch approval, to decide) | Should |
 | R8 | Find a transaction | "Did my RM 120 refund from the shop arrive?" | Searches by amount and date | Narrow data class: yes/no + date | Could |
 
 ## 2. Corporate banking (persona: Tanjung Logistics Sdn Bhd)
@@ -31,6 +32,11 @@ Priority: **Must** = in the first demo; **Should** = build if time allows; **Cou
 | C5 | Over-mandate escalation | Same supplier, RM 32,000 | Policy says **Escalate**; routes to checker + CFO | Hard limit cannot be overridden by the agent | Should |
 | C6 | Supplier spend review | Priya: "Who were our top suppliers last quarter, and what changed?" | Aggregates by supplier vs prior quarter | Pattern C with `aggregate_with_payee_names` data class (company's own payees) | Should |
 | C7 | Liquidity forecast | Priya: "Can we cover payroll and the fuel run next week?" | Projects operating account vs scheduled outflows and pending approvals | Pattern C; pending reservations counted | Should |
+| C9 | One person, two profiles | Mei Ling: "What's my balance, and what's the company's cash position?" | Her personal agent holds two consents (personal and Tanjung Logistics); it sends two separate intents; the bank agent serves each in its own profile | Profile isolation; audit shows two contexts, never one combined answer | Must |
+| C10 | Statutory contributions | Mei Ling: "Pay this month's retirement fund, social security and tax instalment." | Reads the contribution schedule, checks totals against the payroll just run, drafts three corporate biller payments | Biller payments under the approval matrix; amounts tied to payroll | Should |
+| C11 | Receivables check (supplier side) | Azman at Petro Hub: "Has Tanjung Logistics paid INV-2026-1187 yet?" | Matches incoming credits on Petro Hub's collections account by virtual account and reference | Petro Hub sees only its own incoming credit, never Tanjung's account or balances | Should |
+| C12 | Group cash and sweep | Kavitha (group treasurer, Seri Mutiara): "What's the group's cash today, and sweep the subsidiaries down to RM 200k each." | Group position across three entities; drafts own-transfers to the concentration account where she has create rights, and reports where she doesn't | Entity-level entitlements; dual control above RM 500k | Could |
+| C13 | Single-signatory SME | Dr Lim (Klinik Sejahtera): "Pay the medical supplies invoice." | Drafts the payment; policy applies single-signatory rules (cooling-off for new payee, device approval) | Policy compensates for no maker/checker | Could |
 | C8 | Reconciliation export | Hafiz (auditor): "Give me the September statement for the operating account." | Blind statement view for the auditor's own app session | Pattern B; read-only role | Could |
 
 ## 3. Security scenes (run on top of the use cases)
@@ -48,7 +54,27 @@ These prove the controls. Each is a variation of a use case above. The demo runs
 | X7 | Lost response | R4 | Payments rail executes then drops the response | `outcome_unknown`; no blind retry; reconciliation resolves it to `executed`; no double payment | T9 |
 | X8 | Tool poisoning | any | A Banking MCP tool description is changed at runtime | Bank agent refuses to load the changed manifest | T5 |
 | X9 | Agent tries to execute | R4 | Personal agent is told "just do it, don't bother me" | No tool exists to execute; status stays `awaiting_approval` | Pattern D |
+| X11 | Profile bleed | C9 | Under her **personal** consent Mei Ling asks "pay the Petro Hub invoice from the operating account", or under the **company** consent asks "how much did I spend on dining?" | Company refs don't resolve in the personal profile and vice versa; the agent is told which consent to use; denial audited | T1 |
+| X12 | Paying yourself | C2 | Mei Ling (maker) drafts a company payment to her **own personal account** as a "reimbursement" | Policy detects the payee belongs to the maker's own party: never Auto-Execute, Escalate to CFO, and Mei Ling cannot approve it | Conflict of interest |
 | X10 | Session severing | any | Repeated injection hits in one session | Tier 3 response: session revoked, pending drafts cancelled, audit alert | 5.2 |
+
+## 3a. Mode comparison (same scene, three modes)
+
+How the key scenes should come out in each channel mode ([architecture.md](architecture.md) §2a). The scene
+tests assert these outcomes, including that the Mode 1 attacks **do** succeed, so the baseline stays honest.
+
+| Scene | Mode 1 · Open MCP | Mode 2 · Governed direct MCP | Mode 3 · Bank agent |
+| --- | --- | --- | --- |
+| R2 spending insight | Works; rows from **all** linked accounts in the customer's agent | Works; ~300 rows from consented accounts leave the bank | Works; one aggregate object leaves the bank |
+| R3 statement view | Rows to the customer's agent | Rows to the customer's agent (or a blind token if it chooses `create_statement_view`) | Blind token only |
+| R4 bill payment | Executes with no approval | Draft → device approval → executed | Same as Mode 2 |
+| X1 scope bleed | Joint and SME data leak | Blocked by consent refs | Blocked |
+| X2 poisoned invoice | Agent may pay the attacker's account, twice, at once | One draft, registered payee only, checker sees the real payee | Same as Mode 2, and the PDF is scanned before any bank agent sees it |
+| X3 poisoned memo | Memo steers the customer's agent; full account numbers are available to leak | Memo reaches the customer's agent marked `untrusted`; no full numbers exist to leak, but the agent can still be steered | Memo only reaches the bank agent; the output template has nowhere to put a leak |
+| X6 / X7 limit race, lost response | Limit breach and double payment possible | Prevented by TAS | Same as Mode 2 |
+| C3 payroll check | Depends on the customer's agent | Depends on the customer's agent, which now holds payroll and account data | Bank agent's checks, the same for every customer |
+| C9 / X11 profile bleed | One key sees personal and company money | Blocked by profile-bound tokens | Blocked |
+| Data out of the bank per session | Everything | Consented raw records | Aggregates and statuses |
 
 ## 4. Out of scope for the POC
 

@@ -47,6 +47,9 @@ flowchart LR
   edge, the *Agent Channel*, using typed intents ("spending summary", "pay this invoice").
 - The **bank agent** does the work inside the bank. It is the only agent that uses the **Banking MCP** servers,
   which wrap the mock core banking, customer profile, statements and payments services.
+- **The POC can also run without the bank agent**, to show what it adds. Three modes: an unsafe open MCP, the
+  personal agent calling governed banking MCP tools directly through the gateway, and the full bank-agent setup
+  ([architecture.md](architecture.md) §2a, [demo-script.md](demo-script.md) Act 4).
 - **Nothing moves money without a signed approval** in the mock bank app, except corporate payments that fall
   inside a mandate the company set up beforehand (SAFR "Auto-Execute"), which is a corporate-only scene.
 
@@ -78,6 +81,7 @@ These are the recommendations the prompt currently assumes. Change them here and
 | D8 | Data store | One **Postgres 16**, one schema per mock service, plus one for TAS and audit | Serializable transactions for the commitment layer (blueprint 4.5) | SQLite (cannot show the concurrency scenes honestly) |
 | D9 | Pattern A scanning | A **pluggable scanner interface** with a simple built-in heuristic scanner | Proves placement; vendor choice comes later | Integrate one vendor scanner now |
 | D10 | UI | One **demo console** web page: personal-agent chat, phone-frame bank app, live audit trail | The audience sees all three at once | Separate apps |
+| D11 | Comparison modes | **Three modes** (open / governed direct / bank agent) as one setting; same personal agent code | Separates what the gateway gives from what the bank agent gives; Mode 2 matches board deck Option A, Mode 3 Option C | Only the unsafe baseline vs the target (loses the honest middle) |
 
 ## Open questions
 
@@ -86,5 +90,5 @@ These are the recommendations the prompt currently assumes. Change them here and
 2. Should the corporate scenes use Malaysian rails names (DuitNow, IBG, JomPAY) as the spec does, or stay generic?
 3. Is an Anthropic API key with enough budget available for repeated demo runs? (Each full run of the demo script
    is a few dozen model calls.)
-4. Is the "naive stack" comparison (attacks succeed without the controls, fail with them) in scope for the first
-   build, or a later milestone? The prompt puts it last (M7).
+4. The three-mode comparison: Mode 2 arrives at M4, Mode 1 (the unsafe baseline) at M7. Should Mode 1 come
+   earlier for a security audience?
