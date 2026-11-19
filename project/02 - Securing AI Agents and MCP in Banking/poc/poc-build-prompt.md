@@ -32,6 +32,8 @@ All paths are relative to `project/02 - Securing AI Agents and MCP in Banking/`.
 - `poc/mcp-tool-catalogue.md` — the exact Agent Channel tools/intents and Banking MCP tools.
 - `poc/use-cases.md` — retail R1–R8, corporate C1–C8, security scenes X1–X10, with priorities.
 - `poc/demo-script.md` — the demo the finished stack must run.
+- `poc/bank-agent-design.md` — how the bank agent processes requests (pipeline, context order, tools per request
+  type, budgets) and how each risk and fraud type is mitigated. Implement the bank agent to this document.
 - `solution-blueprint.md` — the full security design. Sections 3.2–3.4 (Patterns B, C, D), 4.2 (tool design),
   4.3 (policy gateway), 4.5 (commitment lifecycle) and 5.1 (audit) are the ones you implement.
 
@@ -62,7 +64,8 @@ Treat these as acceptance tests. Write an automated test for each.
 1. **No unmediated path from the personal agent to banking tools.** In Mode 3 (the default) the personal agent's
    only bank connection is the Agent Channel MCP, and the Banking MCP servers accept calls only from the bank
    agent's service identity on the internal network. In Mode 2 the gateway proxies the Banking MCP tools with every
-   control below except properties 2 and 9. Mode 1 is the only exception to everything here (see Channel modes).
+   control below except properties 2 and 9 (and, with no bank agent, no risk findings; the fixed fraud rules still
+   run). Mode 1 is the only exception to everything here (see Channel modes).
 2. **No raw data leaves the bank.** Agent Channel responses never contain transaction rows, full account numbers
    or internal IDs. Each `ask_bank` intent has an output schema (template); the gateway rejects any bank-agent
    answer that does not fit it, then runs a DLP check.
@@ -89,7 +92,11 @@ Treat these as acceptance tests. Write an automated test for each.
 9. **Bank agent isolation.** The bank agent handles one request at a time with a fresh context, has no memory
    across requests, and has no network route except the Banking MCP servers and the model API. (In compose, put
    it on an internal network; document that production would use a bank-hosted model with no internet egress.)
-10. **Everything is audited.** Every intent, tool call, policy decision, scan result, approval and state change
+10. **Friction only goes up.** The bank agent may attach risk findings to drafts; the policy engine maps finding
+   codes to actions and takes the stricter of the rule outcome and the finding outcome. No finding, missing finding,
+   unknown code or agent text can lower an outcome, and the agent can never produce Auto-Execute. Fixed fraud rules
+   (mule list, name check, cooling-off, self-payment, limits) run whether or not the agent raised anything.
+11. **Everything is audited.** Every intent, tool call, policy decision, scan result, approval and state change
    writes an append-only, hash-chained, Ed25519-signed audit event (fields in blueprint 5.1). Provide
    `make evidence SESSION=<id>` to export a bundle and `stack/bank-edge/audit/verify.py` to verify it offline.
 
@@ -137,7 +144,8 @@ Build in order. Each milestone ends with tests passing, `make demo-<milestone>` 
 - **M1 — Mock banking system.** The four services per `mock-banking-system.md`, seed data for Aisyah, Farid,
   Daniel and Tanjung Logistics, the Tanjung staff who are also retail customers (Mei Ling, Rajesh, Priya and the
   light-retail employees paid by intrabank payroll), the extra corporates (Petro Hub, Seri Mutiara Retail Group,
-  Klinik Sejahtera) and the full biller list with bill accounts and history, with a fixed random seed; customer files including the poisoned invoice and payroll
+  Klinik Sejahtera), the full biller list with bill accounts and history, the fraud-intelligence service and its
+  seed (directory, mule accounts, Jason Lee, baselines, typologies), with a fixed random seed; customer files including the poisoned invoice and payroll
   variants, fault injection endpoints. Tests for balances, idempotent posting, cooling-off, bulk validation.
 - **M2 — Banking MCP + bank agent.** Read and draft MCP servers with pinned, signed manifests. The bank agent,
   runnable from a CLI harness that feeds it intents directly (`make ask PERSONA=aisyah INTENT=spending_summary`).
@@ -147,11 +155,13 @@ Build in order. Each milestone ends with tests passing, `make demo-<milestone>` 
 - **M4 — Personal agent + demo console.** The personal agent (CLI and web chat); demo console with chat, bank app
   pane and live audit feed; Pattern B statement view (R3). Add Mode 2 (Direct Channel) and the mode toggle here,
   since the gateway already has everything it needs, so R2 can be compared in Modes 2 and 3 early.
-- **M5 — Writes: TAS, approvals, commitment layer.** Draft lifecycle, reservations, device-key approval in the bank
-  app, commit-time revalidation, durable obligation, reconciliation for unknown outcomes. R4, R5, X5, X7, X9.
+- **M5 — Writes: TAS, approvals, commitment layer, fraud rules.** Draft lifecycle, reservations, device-key
+  approval in the bank app, commit-time revalidation, durable obligation, reconciliation for unknown outcomes; risk
+  findings and the finding-to-action table; fixed fraud rules; scam warnings in the bank app; fraud-ops queue in the
+  console. R4, R5, X5, X7, X9, F2, F4, F6.
 - **M6 — Corporate.** Roles, approval matrix, maker/checker in the bank app, bulk payroll, mandates with
-  Auto-Execute / Escalate and shared envelopes. C2, C3, C4, C5, C7, C9, C10, C11, X4, X6, X11, X12 (C12, C13
-  if time allows).
+  Auto-Execute / Escalate and shared envelopes. C2, C3, C4, C5, C7, C9, C10, C11, X4, X6, X11, X12, F1, F3
+  (C12, C13, F5 if time allows).
 - **M7 — Security scenes and the three-mode comparison.** X1–X3, X8, X10 as scripted scenes; Mode 1 (Open banking
   MCP, `open` compose profile) so the attacks visibly succeed; the comparison panel and the `use-cases.md` §3a
   outcome matrix as tests across all three modes; evidence bundle export and offline verify; the full

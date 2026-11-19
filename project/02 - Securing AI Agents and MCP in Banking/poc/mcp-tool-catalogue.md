@@ -28,7 +28,7 @@ Every tool takes the customer's bearer token (set by the MCP client) and returns
 | `list_my_accounts` | — | Consented accounts: `ref`, product, nickname, masked number, currency. Balances only if the `balances` capability was consented | — |
 | `ask_bank` | `intent` (enum, below), `params` (typed per intent) | Intent-specific aggregate answer | C |
 | `request_statement_view` | `account_ref`, `period` | `{status: ready, deep_link}` | B |
-| `request_payment` | `type` (`bill` / `transfer` / `own_transfer` / `supplier_invoice`), typed fields, optional `document` (an uploaded invoice; scanned by Pattern A) | `{request_id, status: awaiting_approval / escalated / auto_executed / denied, display_summary}` | D |
+| `request_payment` | `type` (`bill` / `transfer` / `own_transfer` / `supplier_invoice`), typed fields, `purpose` (enum: `bills`, `family`, `purchase`, `investment`, `government_or_tax`, `supplier`, `other`), optional `document` (an uploaded invoice; scanned by Pattern A) | `{request_id, status: awaiting_approval / escalated / auto_executed / denied, display_summary}` | D |
 | `request_bulk_payment` | `type` (`payroll` / `supplier`), `file` (CSV), `debit_account_ref` | Validation report + `{request_id, status}` | D |
 | `request_payee_change` | `action` (`add` / `remove`), typed payee fields | `{request_id, status}` (adds always need approval, then cooling-off) | D |
 | `get_request_status` | `request_id` | Lifecycle status only (`awaiting_approval`, `approved`, `executed`, `refused`, `outcome_unknown`, …) | — |
@@ -72,10 +72,15 @@ before forwarding, and checks the answer against the intent's **output template*
 | `get_mandate` | `mandate_ref` | Payee refs, per-payment cap, envelope, used / reserved | TAS |
 | `validate_bulk_file` | `file_ref` | Line-level validation results | Payments |
 | `create_statement_view` | `account_ref`, `period` | Blind token + deep link (Pattern B) | Statements |
+| `get_payee_risk` | `payee_ref` | Mule-list hit, destination account age, name-check result, cooling-off status | Fraud intelligence |
+| `check_payee_name` | `name`, `bank_code`, `account_no` (for new payees only) | `match` / `close_match` / `no_match` | Fraud intelligence |
+| `get_customer_baseline` | — | Usual payment size, payee count, active hours (for `AMOUNT_UNUSUAL` findings) | Fraud intelligence |
 
 ### 3.2 Draft server
 
 All of these create a **TAS draft**. None posts anything. Each returns `{draft_id, status, policy_decision}`.
+Each accepts an optional `findings` array (code, severity, evidence) from the bank agent. Findings can only raise
+the policy outcome, never lower it ([bank-agent-design.md](bank-agent-design.md) §5.1).
 
 | Tool | Parameters |
 | --- | --- |

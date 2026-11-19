@@ -1,6 +1,7 @@
 # Agentic Banking POC — Mock Banking System
 
-The four mock bank systems behind the Banking MCP: **core banking, customer profile, statements and payments**.
+The four mock bank systems behind the Banking MCP: **core banking, customer profile, statements and payments**,
+plus a fifth, **fraud intelligence** (§6), that the policy engine and the bank agent use for fraud checks.
 They are deliberately ordinary. They behave like separate bank systems (own schema, own API, HTTP between them)
 so the bank agent has to work the way it would against a real bank. All data is synthetic. Currency is MYR. See
 the [POC README](README.md) and [architecture.md](architecture.md).
@@ -180,6 +181,17 @@ corporate banking. All are fictional.
 Corporate suppliers that are *not* bank customers (most of Tanjung's ~25 payees) are paid interbank, so the demo
 shows both intrabank and interbank execution.
 
+### Fraud seed (for scenes F1–F6)
+
+| Item | Seed |
+| --- | --- |
+| Mock interbank directory | ~200 external accounts with holder names and open dates, so payee-name checks and account-age checks have answers |
+| Mule accounts | 6 external accounts on the mule list, including the "tax officer" account in F2 and the account in the diverted payroll line (F3), opened within the last 14 days |
+| Changed-details letter | A Sinar Diesel Supplies letter (PDF) in Mei Ling's files saying bank details have changed, pointing to an account whose holder name does not match (F1) |
+| Payroll diversion | The anomalous payroll CSV's changed line points to a mule account (F3) |
+| Mule persona | **Jason Lee**, retail: account opened 5 weeks ago, several incoming transfers from unrelated people each followed within hours by outgoing transfers to new payees (F5) |
+| Baselines | Per customer: usual payment sizes, payee count, active hours, devices; computed from the seeded history |
+
 ### Customer files (read by the personal agent, not the bank)
 
 `stack/seed-data/customer-files/<persona>/`: invoices (PDF), payroll CSVs, a household budget note. Mei Ling's
@@ -187,3 +199,22 @@ folder holds both her personal files and the company files she works with, as it
 also has the month's statutory contribution schedule (CSV) for C10, and Petro Hub has an open-invoices list for C11. These are the
 untrusted documents for the injection scenes. The bank never reads these files directly; they only reach the bank
 as fields in an intent, where Pattern A scans them.
+
+## 6. Fraud intelligence
+
+A stand-in for the bank's fraud engine, national mule databases and payee-name services. The **policy engine**
+calls it for fixed rules on every payment; the **bank agent** can read the same signals through the Banking MCP to
+explain them. See [bank-agent-design.md](bank-agent-design.md) §5.
+
+| Entity | Key fields |
+| --- | --- |
+| `directory_account` | `bank_code`, `account_no_masked`, `holder_name`, `opened_at` (mock interbank directory) |
+| `mule_account` | `bank_code`, `account_no_masked`, `source`, `listed_at` |
+| `customer_baseline` | `party_id`, `p95_payment_minor`, `usual_payee_count`, `active_hours`, `known_devices` |
+| `scam_typology` | `code` (`impersonation_tax`, `investment`, `purchase`, `romance`, `invoice_change`), `warning_text`, `hold_threshold_minor` |
+| `fraud_case` | `case_id`, `party_id`, `draft_id?`, `reason_codes`, `status` (`open` / `cleared` / `confirmed`), `opened_at` |
+
+API (internal): `POST /name-check` (payee name vs directory holder: `match` / `close_match` / `no_match`),
+`GET /account-risk?bank&account` (mule hit, account age), `GET /baselines/{party_id}`, `GET /typologies`,
+`POST /cases`, `PATCH /cases/{id}`. Fraud cases appear in a fraud-ops queue in the demo console, where a presenter
+can clear or confirm a held payment.

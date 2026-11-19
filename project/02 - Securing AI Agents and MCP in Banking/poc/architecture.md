@@ -22,6 +22,7 @@ simple stand-ins. See the [POC README](README.md).
 | Z4 | **Mock customer profile** | `stack/services/customer-profile/` | Retail customers, corporate entities, users and roles, account relationships (sole / joint / business / corporate), KYC status, devices. |
 | Z4 | **Mock statements** | `stack/services/statements/` | Transaction history with categories, monthly statements, blind-token vault for statement views. |
 | Z4 | **Mock payments** | `stack/services/payments/` | Payees / beneficiaries, billers, intrabank transfer, interbank (mock DuitNow / IBG), bill payment (mock JomPAY), bulk payment files, standing instructions. Idempotent submission; can be told to fail or time out for the T9 scene. |
+| Z4 | **Mock fraud intelligence** | `stack/services/fraud-intel/` | Mule list, payee-name check, destination account age, customer baselines, scam typologies, fraud-ops case queue. Used by the policy engine (fixed rules) and readable by the bank agent. |
 | Z4 | **Open banking MCP (Mode 1 only)** | `stack/open-mcp/` | Deliberately unsafe baseline: broad tools straight over the mock services, including a `transfer` that executes. Runs only in the `open` compose profile, never by default. |
 | — | **Demo console** | `stack/demo-console/` | One web page with three panes: personal-agent chat, bank app, live audit / trace feed. Scene picker for [demo-script.md](demo-script.md). |
 | — | **Seed data** | `stack/seed-data/` | Synthetic personas, accounts, 6 months of transactions, poisoned documents for the attack scenes. |
@@ -45,7 +46,8 @@ flowchart LR
 | What comes back | Synthesised answers, blind-token deep links, request status. **Never raw rows.** | Raw data for the consented accounts (stays in Z3) |
 | Auth | Customer's consent-scoped JWT | Bank agent's service identity + the customer context the gateway bound to the request |
 
-The full lists are in [mcp-tool-catalogue.md](mcp-tool-catalogue.md).
+The full lists are in [mcp-tool-catalogue.md](mcp-tool-catalogue.md). How the bank agent processes a request and
+how each risk and fraud type is mitigated is in [bank-agent-design.md](bank-agent-design.md).
 
 ## 2a. Three channel modes: with and without the bank agent
 

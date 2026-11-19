@@ -58,7 +58,7 @@ Supporting docs in this folder:
 - [poc/](poc/README.md): agentic banking POC spec (draft, nothing built yet). A personal agent reaches the bank
   only through an Agent Channel MCP gateway; a sandboxed bank agent serves it through Banking MCP servers over a
   mocked core banking, customer profile, statements and payments system. Retail and corporate use cases
-  ([use-cases.md](poc/use-cases.md)), security scenes, a [demo script](poc/demo-script.md), the coding-agent
+  ([use-cases.md](poc/use-cases.md)), security and fraud scenes, a [bank agent design and risk register](poc/bank-agent-design.md), a [demo script](poc/demo-script.md), the coding-agent
   [build prompt](poc/poc-build-prompt.md) (milestones M0–M7) and an empty `stack/` folder structure. Decisions
   D1–D10 in the POC README need review before building.
 - [`reference/`](reference/): source PDFs from outside OrangePay (self-published, AI-assisted, not independently

@@ -9,7 +9,8 @@ stack/
 │   ├── core-banking/         accounts, ledger, balances, holds, limits
 │   ├── customer-profile/     parties, users, relationships, corporate roles, approval matrix, devices
 │   ├── statements/           transactions, statements, blind-token view vault
-│   └── payments/             payees, billers, rails, payment orders, bulk batches, standing instructions
+│   ├── payments/             payees, billers, rails, payment orders, bulk batches, standing instructions
+│   └── fraud-intel/          mule list, payee-name check, account age, baselines, scam typologies, fraud cases
 ├── banking-mcp/              Z4 · MCP servers the bank agent uses
 │   ├── read-server/          read-only tools
 │   └── draft-server/         draft_* tools (create TAS drafts only)

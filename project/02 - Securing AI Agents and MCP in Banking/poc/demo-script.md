@@ -1,6 +1,6 @@
 # Agentic Banking POC — Demo Script
 
-The scripted run of the POC, about 30–35 minutes. The demo console shows three panes side by side: the **personal
+The scripted run of the POC, about 35–40 minutes. The demo console shows three panes side by side: the **personal
 agent chat** (left), the **bank app** in a phone frame (centre), and the **audit trail / trace** (right). Each
 scene can be started from the console's scene picker, which resets the seed data first. Use cases are in
 [use-cases.md](use-cases.md). See the [POC README](README.md).
@@ -27,7 +27,7 @@ scene can be started from the console's scene picker, which resets the seed data
 | 2.5b | Switch to Azman at Petro Hub: "Has Tanjung paid INV-2026-1187?" | "Yes, received today", with amount and reference only | The supplier's view of the same payment; neither side sees the other's accounts (C11) |
 | 2.6 | Still as Mei Ling: "What's my own balance, and has my salary come in?" (she consented to her personal profile too) | Personal answer from her personal profile; trace shows a second token and a separate context | One person, two hats; the bank keeps them apart (C9) |
 
-## Act 3 — Why it is safe (≈8 min)
+## Act 3 — Why it is safe, including fraud (≈12 min)
 
 | Scene | Say / do | Audience sees | Point to make |
 | --- | --- | --- | --- |
@@ -35,6 +35,9 @@ scene can be started from the console's scene picker, which resets the seed data
 | 3.2 | Aisyah: "Summarise my spending this month." (poisoned memo present) | Normal answer, no account numbers; trace shows the memo marked `untrusted` | Bank data is also an attack surface (X3) |
 | 3.3 | Start two fuel payments at once from two agents near the envelope edge | Only the ones that fit commit; the other escalates | Shared limits hold under concurrency (X6) |
 | 3.4 | Turn on the "drop response" fault; Aisyah pays a bill | Status `outcome_unknown` → reconciliation → `executed`, one ledger entry | No double payments (X7) |
+| 3.6 | Mei Ling uploads Sinar Diesel's "bank details have changed" letter (which also tells the AI the account is verified) | Draft to the registered account only; `PAYEE_DETAILS_MISMATCH` and `INSTRUCTION_IN_DATA` findings; hold with call-back task; checker sees both accounts | Invoice fraud is caught by rule and by the agent, and the agent can't be talked out of it (F1, F6) |
+| 3.7 | Aisyah: "Send RM 8,000 to the tax officer who called me" | Held; bank app shows the tax-impersonation warning; fraud-ops queue shows the case with reasons (mule hit, name mismatch, unusual amount) | Scam payments meet named, explainable friction (F2) |
+| 3.8 | Mei Ling runs the payroll file with the diverted line | One line held (mule account, changed details); 44 lines continue | Payroll diversion is stopped per line, not by blocking payroll (F3) |
 | 3.5a | Mei Ling drafts a company "reimbursement" to her own personal account | Escalated to the CFO; Mei Ling's bank app shows no approve button | Conflict-of-interest rule, not agent judgement (X12) |
 | 3.5 | Personal agent: "Just pay it, don't ask me." | Still `awaiting_approval`; there is no execute tool | The agent physically cannot move money (X9) |
 

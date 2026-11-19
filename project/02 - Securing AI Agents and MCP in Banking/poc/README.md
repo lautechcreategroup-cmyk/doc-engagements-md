@@ -50,6 +50,9 @@ flowchart LR
 - **The POC can also run without the bank agent**, to show what it adds. Three modes: an unsafe open MCP, the
   personal agent calling governed banking MCP tools directly through the gateway, and the full bank-agent setup
   ([architecture.md](architecture.md) §2a, [demo-script.md](demo-script.md) Act 4).
+- **Fraud controls are shown, not just described:** changed bank details on an invoice, an impersonation scam,
+  payroll diversion, account takeover and a money mule, plus proof that the agent can't be talked out of a risk
+  ([bank-agent-design.md](bank-agent-design.md) §5).
 - **Nothing moves money without a signed approval** in the mock bank app, except corporate payments that fall
   inside a mandate the company set up beforehand (SAFR "Auto-Execute"), which is a corporate-only scene.
 
@@ -59,7 +62,8 @@ flowchart LR
 | --- | --- |
 | [poc-build-prompt.md](poc-build-prompt.md) | **The prompt.** Hand it to a coding agent to build the stack, milestone by milestone. |
 | [architecture.md](architecture.md) | Components, trust zones, request flows, tech stack and what the POC simplifies on purpose. |
-| [mock-banking-system.md](mock-banking-system.md) | The four mock services: data model, internal APIs, business rules, seed data. |
+| [mock-banking-system.md](mock-banking-system.md) | The mock bank systems (core banking, customer profile, statements, payments, fraud intelligence): data model, internal APIs, business rules, seed data. |
+| [bank-agent-design.md](bank-agent-design.md) | **How risk is handled.** How the bank agent processes a request, and how each security threat, agent risk and fraud type is mitigated, with the scene that demonstrates it. The document to share with a bank's risk, fraud and security teams. |
 | [mcp-tool-catalogue.md](mcp-tool-catalogue.md) | The Banking MCP tools (for the bank agent) and the Agent Channel intents (for personal agents). |
 | [use-cases.md](use-cases.md) | Retail (R1–R8) and corporate (C1–C8) use cases, plus the security scenes they exercise. |
 | [demo-script.md](demo-script.md) | The scripted demo: scenes, what the audience sees, what to show in the audit trail. |
